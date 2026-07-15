@@ -1,4 +1,4 @@
-# acme-qr-code
+# Havoc-QR-Label-Generator
 
 Generates printable QR code identification plates for drone assets. Each plate encodes the drone's local network address as a QR code so ground crew can pull up its web interface instantly with a phone camera — no app required.
 

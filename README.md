@@ -26,11 +26,16 @@ the local network.
 
 - **Live preview** of every label in the batch — click any preview to download
   that single PNG.
+- **Presets** for common thermal-label stock (1.5×2 in badge, 6×4 in shipping,
+  2×1 in asset tag, 1×1 in QR sticker, …) — one click sets the size, layout,
+  and tuned spacing; everything stays editable afterwards.
 - **Multiple layouts:** *Vertical badge* (header / big number / QR / footer),
   *Horizontal tag* (QR left, text right), and *QR only*.
+- **Seven bundled fonts** — mono, condensed, and heavy-display options suited
+  to label printing.
 - **Proportional design:** all spacing and font sizes are percentages of the
   plate, so a layout looks identical at any DPI or physical size. DPI only sets
-  output resolution; plate size and corner radius are physical (mm).
+  output resolution; plate size and corner radius are physical (inches).
 - **Download PDF** — one label per page, each page sized to the exact physical
   dimensions for true-scale printing.
 - **Download PNGs (ZIP)** — one PNG per label, with embedded DPI metadata so

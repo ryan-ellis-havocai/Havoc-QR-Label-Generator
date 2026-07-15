@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drone Label Generator</title>
-<link rel="stylesheet" href="style.css">
+<!-- Bump ?v= on each deploy so browsers fetch fresh assets instead of cached ones. -->
+<link rel="stylesheet" href="style.css?v=20260715b">
 </head>
 <body>
 
@@ -19,6 +20,16 @@
 <main class="app">
 
   <form id="controls" onsubmit="return false">
+
+    <section>
+      <h2>Preset</h2>
+      <label class="field">
+        <span>Label preset <small>sets size, layout &amp; spacing</small></span>
+        <select id="preset">
+          <option value="">Custom / manual</option>
+        </select>
+      </label>
+    </section>
 
     <section>
       <h2>Layout</h2>
@@ -58,13 +69,13 @@
     <section>
       <h2>Plate</h2>
       <div class="field-row">
-        <label class="field" data-key="plate_width_mm">
-          <span>Width (mm)</span>
-          <input name="plate_width_mm" type="number" min="5" step="0.1">
+        <label class="field" data-key="plate_width_in">
+          <span>Width (in)</span>
+          <input name="plate_width_in" type="number" min="0.25" step="any">
         </label>
-        <label class="field" data-key="plate_height_mm">
-          <span>Height (mm)</span>
-          <input name="plate_height_mm" type="number" min="5" step="0.1">
+        <label class="field" data-key="plate_height_in">
+          <span>Height (in)</span>
+          <input name="plate_height_in" type="number" min="0.25" step="any">
         </label>
       </div>
       <div class="field-row">
@@ -72,9 +83,9 @@
           <span>DPI</span>
           <input name="dpi" type="number" min="72" max="1200" step="1">
         </label>
-        <label class="field" data-key="corner_radius_mm">
-          <span>Corner radius (mm)</span>
-          <input name="corner_radius_mm" type="number" min="0" step="0.5">
+        <label class="field" data-key="corner_radius_in">
+          <span>Corner radius (in)</span>
+          <input name="corner_radius_in" type="number" min="0" step="any">
         </label>
       </div>
     </section>
@@ -141,30 +152,36 @@
     <section>
       <h2>Spacing <small>(% of plate)</small></h2>
       <div class="field-row">
+        <label class="field" data-key="top_pad_pct">
+          <span>Top padding <small>% H</small></span>
+          <input name="top_pad_pct" type="number" step="any">
+        </label>
         <label class="field" data-key="header_gap_pct">
           <span>Header gap <small>% H</small></span>
           <input name="header_gap_pct" type="number" step="any">
         </label>
+      </div>
+      <div class="field-row">
         <label class="field" data-key="number_gap_pct">
           <span>Number gap <small>% H</small></span>
           <input name="number_gap_pct" type="number" step="any">
         </label>
-      </div>
-      <div class="field-row">
         <label class="field" data-key="footer_gap_pct">
           <span>Footer gap <small>% H</small></span>
           <input name="footer_gap_pct" type="number" step="any">
         </label>
+      </div>
+      <div class="field-row">
         <label class="field" data-key="blurb_gap_pct">
           <span>Blurb gap <small>% H</small></span>
           <input name="blurb_gap_pct" type="number" step="any">
         </label>
-      </div>
-      <div class="field-row">
         <label class="field" data-key="footer_pad_pct">
           <span>Footer offset <small>% W</small></span>
           <input name="footer_pad_pct" type="number" step="any">
         </label>
+      </div>
+      <div class="field-row">
         <label class="field" data-key="inner_pad_pct">
           <span>Inner padding <small>% W</small></span>
           <input name="inner_pad_pct" type="number" min="0" step="any">
@@ -190,9 +207,9 @@
 </main>
 
 <script src="vendor/qrcode.js"></script>
-<script src="layouts.js"></script>
-<script src="exporters.js"></script>
-<script src="app.js"></script>
+<script src="layouts.js?v=20260715b"></script>
+<script src="exporters.js?v=20260715b"></script>
+<script src="app.js?v=20260715b"></script>
 
 </body>
 </html>

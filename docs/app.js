@@ -4,10 +4,8 @@
  * the plate, never raw pixels — so a label looks identical at any DPI or
  * physical size. Font sizes and vertical gaps are a percent of plate
  * height; horizontal offsets are a percent of plate width. DPI only sets
- * the output resolution; plate size and corner radius are physical (mm).
- *
- * Web-only keys beyond the Python core: layout, font_family, number_pad,
- * inner_pad_pct, show_caption.
+ * the output resolution; plate size and corner radius are physical
+ * (inches, to match label-stock conventions).
  */
 
 "use strict";
@@ -23,10 +21,10 @@ const DEFAULTS = {
   url_template: "http://{prefix}{i}:8000/",
 
   // Plate (physical label) dimensions
-  plate_width_mm: 38.1,
-  plate_height_mm: 50.8,
+  plate_width_in: 1.5,
+  plate_height_in: 2,
   dpi: 240,
-  corner_radius_mm: 1.5,
+  corner_radius_in: 0.06,
 
   // Typography — font sizes as a percent of plate HEIGHT
   font_family: "RobotoMono-SemiBold",
@@ -45,6 +43,7 @@ const DEFAULTS = {
 
   // Layout spacing as proportions of the plate. Vertical gaps are a
   // percent of plate HEIGHT; horizontal offsets are a percent of WIDTH.
+  top_pad_pct: 4,         // % H, margin above the header (top of plate)
   header_gap_pct: -2.5,   // % H, after header, before number (may be negative)
   number_gap_pct: 11.67,  // % H, after number, before QR
   footer_gap_pct: 2.08,   // % H, after QR, before footer lines
@@ -60,9 +59,75 @@ const MAX_LABELS = 500;
 const MAX_PREVIEWS = 60;
 
 const FONTS = [
-  { family: "RobotoMono-SemiBold", file: "fonts/RobotoMono-SemiBold.ttf" },
-  { family: "AgencyFB-Bold", file: "fonts/AGENCYB.TTF" },
+  { family: "RobotoMono-SemiBold", file: "fonts/RobotoMono-SemiBold.ttf", label: "Roboto Mono SemiBold (mono)" },
+  { family: "JetBrainsMono-Bold", file: "fonts/JetBrainsMono-Bold.woff2", label: "JetBrains Mono Bold (mono)" },
+  { family: "AgencyFB-Bold", file: "fonts/AGENCYB.TTF", label: "Agency FB Bold (condensed)" },
+  { family: "Oswald-Bold", file: "fonts/Oswald-Bold.woff2", label: "Oswald Bold (condensed)" },
+  { family: "BarlowCondensed-Bold", file: "fonts/BarlowCondensed-Bold.woff2", label: "Barlow Condensed Bold" },
+  { family: "ArchivoBlack", file: "fonts/ArchivoBlack.woff2", label: "Archivo Black (heavy)" },
+  { family: "Inter-Bold", file: "fonts/Inter-Bold.woff2", label: "Inter Bold (sans)" },
 ];
+
+/* Presets: one-click bundles of dimensions, layout, and tuned spacing for
+ * common thermal-label stock. Applying a preset = DEFAULTS + overrides;
+ * everything stays editable afterwards. */
+const PRESETS = {
+  "badge-1p5x2": {
+    label: '1.5 × 2 in — Vertical badge (portrait)',
+    overrides: {}, // the app defaults ARE this preset
+  },
+  "shipping-6x4": {
+    label: '6 × 4 in — Shipping label (landscape)',
+    overrides: {
+      layout: "horizontal-tag",
+      plate_width_in: 6, plate_height_in: 4, corner_radius_in: 0.1,
+      qr_height_fraction: 0.62,
+      font_small_pct: 9, font_large_pct: 26, font_tiny_pct: 6,
+      header_gap_pct: 1, blurb_gap_pct: 2.5, inner_pad_pct: 4,
+    },
+  },
+  "tag-2p25x1p25": {
+    label: '2.25 × 1.25 in — Thermal tag (landscape)',
+    overrides: {
+      layout: "horizontal-tag",
+      plate_width_in: 2.25, plate_height_in: 1.25, corner_radius_in: 0.06,
+      qr_height_fraction: 0.78,
+      font_small_pct: 11, font_large_pct: 30, font_tiny_pct: 8,
+      header_gap_pct: 1, blurb_gap_pct: 2, inner_pad_pct: 3,
+    },
+  },
+  "tag-2x1": {
+    label: '2 × 1 in — Small asset tag (landscape)',
+    overrides: {
+      layout: "horizontal-tag",
+      plate_width_in: 2, plate_height_in: 1, corner_radius_in: 0.05,
+      qr_height_fraction: 0.8,
+      font_small_pct: 12, font_large_pct: 32, font_tiny_pct: 9,
+      header_gap_pct: 1, blurb_gap_pct: 2, inner_pad_pct: 3,
+    },
+  },
+  "badge-3x2": {
+    label: '3 × 2 in — Vertical badge (large)',
+    overrides: {
+      layout: "vertical-badge",
+      plate_width_in: 3, plate_height_in: 2, corner_radius_in: 0.08,
+      qr_height_fraction: 0.45,
+      font_small_pct: 9, font_large_pct: 24, font_tiny_pct: 5.5,
+      top_pad_pct: 3, header_gap_pct: -1, number_gap_pct: 4,
+      footer_gap_pct: 2, blurb_gap_pct: 2,
+    },
+  },
+  "qr-1x1": {
+    label: '1 × 1 in — QR sticker',
+    overrides: {
+      layout: "qr-only",
+      plate_width_in: 1, plate_height_in: 1, corner_radius_in: 0.05,
+      qr_height_fraction: 0.72,
+      font_tiny_pct: 7, footer_gap_pct: 2.5,
+      show_caption: true,
+    },
+  },
+};
 
 // ================================================================
 // Render helpers (the `L` toolbox passed to layouts)
@@ -71,8 +136,8 @@ const FONTS = [
 const L = {
   plateSize(cfg) {
     return {
-      w: Math.round((cfg.plate_width_mm / 25.4) * cfg.dpi),
-      h: Math.round((cfg.plate_height_mm / 25.4) * cfg.dpi),
+      w: Math.round(cfg.plate_width_in * cfg.dpi),
+      h: Math.round(cfg.plate_height_in * cfg.dpi),
     };
   },
 
@@ -190,7 +255,7 @@ function renderLabel(cfg, item) {
   canvas.height = h;
   const ctx = canvas.getContext("2d");
 
-  const radiusPx = (cfg.corner_radius_mm / 25.4) * cfg.dpi;
+  const radiusPx = cfg.corner_radius_in * cfg.dpi;
   ctx.save();
   roundedRectPath(ctx, 0, 0, w, h, radiusPx);
   ctx.clip();
@@ -331,8 +396,8 @@ async function renderPreviews() {
 
   const items = labelItems(cfg);
   const { w, h } = L.plateSize(cfg);
-  const widthIn = cfg.plate_width_mm / 25.4;
-  const heightIn = cfg.plate_height_mm / 25.4;
+  const widthMm = cfg.plate_width_in * 25.4;
+  const heightMm = cfg.plate_height_in * 25.4;
 
   if (items.length === 0) {
     statusLine.textContent = "No labels — check the number range.";
@@ -341,8 +406,8 @@ async function renderPreviews() {
 
   statusLine.textContent =
     `${items.length} label(s) · ${w}×${h} px · ` +
-    `${cfg.plate_width_mm.toFixed(1)}×${cfg.plate_height_mm.toFixed(1)} mm ` +
-    `(${widthIn.toFixed(2)}×${heightIn.toFixed(2)} in) @ ${cfg.dpi} DPI`;
+    `${cfg.plate_width_in.toFixed(2)}×${cfg.plate_height_in.toFixed(2)} in ` +
+    `(${widthMm.toFixed(1)}×${heightMm.toFixed(1)} mm) @ ${cfg.dpi} DPI`;
 
   try {
     await Promise.all(
@@ -460,6 +525,24 @@ function init() {
     face.load().then((loaded) => document.fonts.add(loaded));
   }
 
+  // Preset picker options
+  const presetSel = document.getElementById("preset");
+  for (const [key, preset] of Object.entries(PRESETS)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = preset.label;
+    presetSel.append(opt);
+  }
+  presetSel.addEventListener("change", () => {
+    if (!presetSel.value) return;
+    writeConfig({ ...DEFAULTS, ...PRESETS[presetSel.value].overrides });
+    scheduleRender();
+  });
+  // Any manual edit means the form no longer reflects the preset verbatim
+  form.addEventListener("input", (e) => {
+    if (e.target !== presetSel) presetSel.value = "";
+  });
+
   // Layout picker options
   const layoutSel = fieldEl("layout");
   for (const [key, layout] of Object.entries(LAYOUTS)) {
@@ -474,7 +557,7 @@ function init() {
   for (const f of FONTS) {
     const opt = document.createElement("option");
     opt.value = f.family;
-    opt.textContent = f.family;
+    opt.textContent = f.label;
     fontSel.append(opt);
   }
 

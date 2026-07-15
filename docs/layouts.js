@@ -36,7 +36,7 @@
 
 const SHARED_KEYS = [
   "label_prefix", "number_start", "number_end", "number_pad", "url_template",
-  "plate_width_mm", "plate_height_mm", "dpi", "corner_radius_mm",
+  "plate_width_in", "plate_height_in", "dpi", "corner_radius_in",
   "font_family",
   "qr_version", "qr_error_correct", "qr_border", "qr_height_fraction",
 ];
@@ -53,7 +53,7 @@ const LAYOUTS = {
       ...SHARED_KEYS,
       "font_small_pct", "font_large_pct", "font_tiny_pct",
       "footer_lines",
-      "header_gap_pct", "number_gap_pct", "footer_gap_pct",
+      "top_pad_pct", "header_gap_pct", "number_gap_pct", "footer_gap_pct",
       "blurb_gap_pct", "footer_pad_pct",
     ],
     render(ctx, cfg, item, L) {
@@ -62,7 +62,7 @@ const LAYOUTS = {
       const fLarge = L.font(cfg, "large");
       const fTiny = L.font(cfg, "tiny");
 
-      let y = 0;
+      let y = L.pctH(cfg, cfg.top_pad_pct);
 
       // Header (prefix, rendered as-is)
       const hm = L.measure(ctx, item.prefix, fSmall);

@@ -115,17 +115,17 @@
         <select name="font_family"></select>
       </label>
       <div class="field-row">
-        <label class="field" data-key="font_size_small">
-          <span>Header size</span>
-          <input name="font_size_small" type="number" min="6" step="1">
+        <label class="field" data-key="font_small_pct">
+          <span>Header size <small>% H</small></span>
+          <input name="font_small_pct" type="number" min="0" step="any">
         </label>
-        <label class="field" data-key="font_size_large">
-          <span>Number size</span>
-          <input name="font_size_large" type="number" min="6" step="1">
+        <label class="field" data-key="font_large_pct">
+          <span>Number size <small>% H</small></span>
+          <input name="font_large_pct" type="number" min="0" step="any">
         </label>
-        <label class="field" data-key="font_size_tiny">
-          <span>Footer size</span>
-          <input name="font_size_tiny" type="number" min="6" step="1">
+        <label class="field" data-key="font_tiny_pct">
+          <span>Footer size <small>% H</small></span>
+          <input name="font_tiny_pct" type="number" min="0" step="any">
         </label>
       </div>
       <label class="field" data-key="footer_lines">
@@ -139,35 +139,35 @@
     </section>
 
     <section>
-      <h2>Spacing (px)</h2>
+      <h2>Spacing <small>(% of plate)</small></h2>
       <div class="field-row">
-        <label class="field" data-key="header_gap">
-          <span>Header gap</span>
-          <input name="header_gap" type="number" step="1">
+        <label class="field" data-key="header_gap_pct">
+          <span>Header gap <small>% H</small></span>
+          <input name="header_gap_pct" type="number" step="any">
         </label>
-        <label class="field" data-key="number_gap">
-          <span>Number gap</span>
-          <input name="number_gap" type="number" step="1">
+        <label class="field" data-key="number_gap_pct">
+          <span>Number gap <small>% H</small></span>
+          <input name="number_gap_pct" type="number" step="any">
         </label>
       </div>
       <div class="field-row">
-        <label class="field" data-key="footer_gap">
-          <span>Footer gap</span>
-          <input name="footer_gap" type="number" step="1">
+        <label class="field" data-key="footer_gap_pct">
+          <span>Footer gap <small>% H</small></span>
+          <input name="footer_gap_pct" type="number" step="any">
         </label>
-        <label class="field" data-key="blurb_gap">
-          <span>Blurb gap</span>
-          <input name="blurb_gap" type="number" step="1">
+        <label class="field" data-key="blurb_gap_pct">
+          <span>Blurb gap <small>% H</small></span>
+          <input name="blurb_gap_pct" type="number" step="any">
         </label>
       </div>
       <div class="field-row">
-        <label class="field" data-key="footer_padding">
-          <span>Footer offset</span>
-          <input name="footer_padding" type="number" step="1">
+        <label class="field" data-key="footer_pad_pct">
+          <span>Footer offset <small>% W</small></span>
+          <input name="footer_pad_pct" type="number" step="any">
         </label>
-        <label class="field" data-key="inner_pad">
-          <span>Inner padding</span>
-          <input name="inner_pad" type="number" min="0" step="1">
+        <label class="field" data-key="inner_pad_pct">
+          <span>Inner padding <small>% W</small></span>
+          <input name="inner_pad_pct" type="number" min="0" step="any">
         </label>
       </div>
     </section>

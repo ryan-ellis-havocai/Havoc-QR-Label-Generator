@@ -1,115 +1,90 @@
 # Havoc-QR-Label-Generator
 
-Generates printable QR code identification plates for drone assets. Each plate encodes the drone's local network address as a QR code so ground crew can pull up its web interface instantly with a phone camera — no app required.
+A browser-based tool for generating printable QR identification plates for
+drone assets. Each plate encodes the drone's local network address as a QR
+code, so ground crew can pull up its web interface instantly with a phone
+camera — no app required.
+
+**Live app:** https://ryan-ellis-havocai.github.io/Havoc-QR-Label-Generator/
+
+Everything runs client-side — QR encoding, label rendering, and PNG/ZIP/PDF
+export all happen in the browser. Nothing is uploaded anywhere.
 
 ---
 
-## What a plate looks like
+## What a plate encodes
 
-![Example plate for ACME-EXA-123](docs/acme-exa-123.png)
-
-The plate above was generated for asset **ACME-EXA-123**. Every plate is a square image composed of three layers, top to bottom:
-
-| Layer | Content | Purpose |
-|-------|---------|---------|
-| **Header** | Fleet prefix in small caps — e.g. `ACME-EXA-` | Identifies the asset at a glance |
-| **Number** | Large asset number — e.g. `123` | Human-readable ID, visible from a distance |
-| **QR code** | Encoded URL — e.g. `http://acme-exa-123:8000/` | Scannable link to the drone's onboard web UI |
-
-The QR code URL follows the pattern `http://<prefix><number>:8000/`, where the prefix is lowercased and the number matches the label. This means a phone scan takes ground crew directly to that specific drone's dashboard over the local network.
+A label is built from a fleet **prefix** and an asset **number** (e.g.
+`locust-` + `602`). The QR code encodes a URL from a template — by default
+`http://{prefix}{i}:8000/`, which resolves to `http://locust-602:8000/`. A
+phone scan takes ground crew straight to that drone's onboard dashboard over
+the local network.
 
 ---
 
-## Web GUI (GitHub Pages)
+## Features
 
-A browser-based version of this tool lives in [`docs/`](docs/) — no install
-required, and nothing is uploaded anywhere: QR encoding, label rendering, and
-PNG/ZIP/PDF export all run client-side.
-
-**Features**
-
-- Live preview of every label in the batch (click any preview to download that PNG)
-- Multiple label layouts: **Vertical badge** (classic plate), **Horizontal tag**
-  (QR left, text right), and **QR only** — new layouts can be added by
-  registering an entry in [`docs/layouts.js`](docs/layouts.js)
-- **Download PDF** — one label per page, pages sized to the exact physical
-  dimensions for true-scale printing
+- **Live preview** of every label in the batch — click any preview to download
+  that single PNG.
+- **Multiple layouts:** *Vertical badge* (header / big number / QR / footer),
+  *Horizontal tag* (QR left, text right), and *QR only*.
+- **Proportional design:** all spacing and font sizes are percentages of the
+  plate, so a layout looks identical at any DPI or physical size. DPI only sets
+  output resolution; plate size and corner radius are physical (mm).
+- **Download PDF** — one label per page, each page sized to the exact physical
+  dimensions for true-scale printing.
 - **Download PNGs (ZIP)** — one PNG per label, with embedded DPI metadata so
-  they print at physical size
-- **Copy share link** — encodes the current settings in the URL so a teammate
-  opens the exact same configuration
+  they print at physical size.
+- **Copy share link** — encodes the current settings into the URL so a teammate
+  opens the exact same configuration.
 
-**Hosting on GitHub Pages**
+---
 
-1. Push this repo to GitHub.
-2. In the repo: *Settings → Pages → Build and deployment → Source:
-   "Deploy from a branch"*, branch `main`, folder `/docs`.
-3. Share the resulting `https://<org>.github.io/<repo>/` URL.
+## Adding a new label layout
 
-**Running locally** (any static file server works):
+Layouts are self-contained entries in [`docs/layouts.js`](docs/layouts.js).
+Add one object to the `LAYOUTS` registry with:
+
+- `name` / `description` — shown in the layout picker,
+- `uses` — the config keys the layout reads (the form hides the rest),
+- `render(ctx, cfg, item, L)` — draws the label onto a canvas 2D context.
+
+The canvas is pre-sized, clipped to the rounded rectangle, and filled white;
+the layout only draws content. Use the `L` helper toolbox (`L.pctH` / `L.pctW`
+for proportional spacing, `L.font`, `L.makeQR`, `L.drawQR`, etc.). No other
+file needs to change.
+
+---
+
+## Running locally
+
+Any static file server works — for example:
 
 ```bash
 python -m http.server 8000 --directory docs
 ```
 
----
-
-## Setup
-
-```bash
-pip install -r requirements.txt
-```
-
-The font file `AGENCYB.TTF` (Agency FB Bold) must be present in the project root. It ships with this repo.
+Then open http://localhost:8000/.
 
 ---
 
-## Generating plates
+## Deployment (GitHub Pages)
 
-Open `generate_labels.py` and edit the **CONFIG** block at the top:
-
-```python
-LABEL_PREFIX = "ACME-EXA-"   # fleet/site prefix — appears on header and in the URL hostname
-NUMBER_START = 601            # first asset number (inclusive)
-NUMBER_END   = 650            # last asset number (inclusive)
-```
-
-Then run:
-
-```bash
-python generate_labels.py
-```
-
-Images are written to the `output/` folder, one file per asset:
-
-```
-output/
-  acme-exa-601.png
-  acme-exa-602.png
-  ...
-  acme-exa-650.png
-```
+The site is served from the [`docs/`](docs/) folder on the `main` branch
+(*Settings → Pages → Deploy from a branch → `main` / `/docs`*). Any push to
+`main` rebuilds and redeploys automatically within about a minute.
 
 ---
 
-## Configuration reference
+## Project structure
 
-All tuneable values live in the CONFIG block. No code changes are needed for routine batch runs.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LABEL_PREFIX` | `"ACME-EXA-"` | Fleet/site prefix. Used in the header text, filename, and QR URL. |
-| `NUMBER_START` | `601` | First asset number to generate (inclusive). |
-| `NUMBER_END` | `603` | Last asset number to generate (inclusive). |
-| `URL_TEMPLATE` | `http://{prefix}{i}:8000/` | URL encoded in the QR code. `{prefix}` is the lowercased prefix; `{i}` is the number. |
-| `PLATE_MM` | `52` | Physical plate size in millimetres (square). Match to your label stock. |
-| `DPI` | `96` | Output resolution. Increase for higher-quality prints (e.g. `300` for professional printing). |
-| `FONT_SIZE_SMALL` | `18` | Header text size in points. |
-| `FONT_SIZE_LARGE` | `90` | Asset number text size in points. |
-| `QR_HEIGHT_FRACTION` | `0.45` | QR code height as a fraction of the plate height. |
-
----
-
-## Output folder
-
-The `output/` folder is intentionally excluded from the example image used in this README. The sample plate at `docs/acme-exa-123.png` is a committed reference — do not delete it. Generated plates in `output/` are disposable and can be regenerated at any time.
+```
+docs/
+  index.html      # page + controls
+  style.css       # styling
+  app.js          # config model, canvas rendering, form/preview wiring
+  layouts.js      # pluggable label-layout registry
+  exporters.js    # PNG (with DPI), ZIP, and multi-page PDF writers
+  vendor/         # qrcode-generator (vendored, MIT)
+  fonts/          # bundled label fonts
+```

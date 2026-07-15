@@ -1,8 +1,13 @@
 /* Drone label generator — app wiring.
  *
- * Config keys mirror label_core.py DEFAULTS (same names, same semantics)
- * plus web-only keys: layout, font_family, number_pad, inner_pad,
- * show_caption.
+ * Spacing model: everything that affects appearance is a PROPORTION of
+ * the plate, never raw pixels — so a label looks identical at any DPI or
+ * physical size. Font sizes and vertical gaps are a percent of plate
+ * height; horizontal offsets are a percent of plate width. DPI only sets
+ * the output resolution; plate size and corner radius are physical (mm).
+ *
+ * Web-only keys beyond the Python core: layout, font_family, number_pad,
+ * inner_pad_pct, show_caption.
  */
 
 "use strict";
@@ -23,11 +28,11 @@ const DEFAULTS = {
   dpi: 240,
   corner_radius_mm: 1.5,
 
-  // Typography
+  // Typography — font sizes as a percent of plate HEIGHT
   font_family: "RobotoMono-SemiBold",
-  font_size_small: 48,
-  font_size_large: 136,
-  font_size_tiny: 26,
+  font_small_pct: 10,
+  font_large_pct: 28.33,
+  font_tiny_pct: 5.42,
 
   // Footer blurbs (one per line)
   footer_lines: ["HW: Gen2-VERT-A"],
@@ -38,13 +43,14 @@ const DEFAULTS = {
   qr_border: 0, // quiet-zone modules
   qr_height_fraction: 0.5,
 
-  // Layout tweaks (px at render DPI)
-  header_gap: -12,
-  number_gap: 56,
-  footer_gap: 10,
-  blurb_gap: 12,
-  footer_padding: 0,
-  inner_pad: 16,
+  // Layout spacing as proportions of the plate. Vertical gaps are a
+  // percent of plate HEIGHT; horizontal offsets are a percent of WIDTH.
+  header_gap_pct: -2.5,   // % H, after header, before number (may be negative)
+  number_gap_pct: 11.67,  // % H, after number, before QR
+  footer_gap_pct: 2.08,   // % H, after QR, before footer lines
+  blurb_gap_pct: 2.5,     // % H, between footer lines
+  footer_pad_pct: 0,      // % W, footer offset from the QR's left edge
+  inner_pad_pct: 4.44,    // % W, padding for the horizontal-tag layout
 
   // QR-only layout
   show_caption: true,
@@ -70,8 +76,17 @@ const L = {
     };
   },
 
+  // Convert a percent of plate height / width into pixels.
+  pctH(cfg, pct) {
+    return (pct / 100) * this.plateSize(cfg).h;
+  },
+
+  pctW(cfg, pct) {
+    return (pct / 100) * this.plateSize(cfg).w;
+  },
+
   font(cfg, size) {
-    const px = cfg[`font_size_${size}`];
+    const px = this.pctH(cfg, cfg[`font_${size}_pct`]);
     return `${px}px "${cfg.font_family}"`;
   },
 

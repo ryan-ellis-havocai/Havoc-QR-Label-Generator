@@ -39,6 +39,7 @@ const SHARED_KEYS = [
   "plate_width_in", "plate_height_in", "dpi", "corner_radius_in",
   "font_family",
   "qr_version", "qr_error_correct", "qr_border", "qr_height_fraction",
+  "show_faa", "faa_side", "faa_size_pct",
 ];
 
 const LAYOUTS = {

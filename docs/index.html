@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drone Label Generator</title>
 <!-- Bump ?v= on each deploy so browsers fetch fresh assets instead of cached ones. -->
-<link rel="stylesheet" href="style.css?v=20260715b">
+<link rel="stylesheet" href="style.css?v=20260716b">
 </head>
 <body>
 
@@ -150,6 +150,33 @@
     </section>
 
     <section>
+      <h2>FAA registration</h2>
+      <label class="field checkbox" data-key="show_faa">
+        <input name="show_faa" type="checkbox">
+        <span>Show FAA number on side edge</span>
+      </label>
+      <div class="field-row">
+        <label class="field" data-key="faa_side">
+          <span>Side</span>
+          <select name="faa_side">
+            <option value="right">Right edge</option>
+            <option value="left">Left edge</option>
+          </select>
+        </label>
+        <label class="field" data-key="faa_size_pct">
+          <span>Size <small>% H</small></span>
+          <input name="faa_size_pct" type="number" min="0" step="any">
+        </label>
+      </div>
+      <div class="field">
+        <span>Registration CSV <small>matched by Nickname number</small></span>
+        <input type="file" id="faa-csv" accept=".csv,text/csv">
+      </div>
+      <p id="faa-csv-status" class="muted"></p>
+      <button type="button" id="faa-clear" class="subtle">Clear imported CSV</button>
+    </section>
+
+    <section>
       <h2>Spacing <small>(% of plate)</small></h2>
       <div class="field-row">
         <label class="field" data-key="top_pad_pct">
@@ -207,9 +234,9 @@
 </main>
 
 <script src="vendor/qrcode.js"></script>
-<script src="layouts.js?v=20260715b"></script>
-<script src="exporters.js?v=20260715b"></script>
-<script src="app.js?v=20260715b"></script>
+<script src="layouts.js?v=20260716b"></script>
+<script src="exporters.js?v=20260716b"></script>
+<script src="app.js?v=20260716b"></script>
 
 </body>
 </html>

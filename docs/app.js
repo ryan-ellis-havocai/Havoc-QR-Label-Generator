@@ -43,9 +43,9 @@ const DEFAULTS = {
 
   // Layout spacing as proportions of the plate. Vertical gaps are a
   // percent of plate HEIGHT; horizontal offsets are a percent of WIDTH.
-  top_pad_pct: 4,         // % H, margin above the header (top of plate)
-  header_gap_pct: -2.5,   // % H, after header, before number (may be negative)
-  number_gap_pct: 11.67,  // % H, after number, before QR
+  top_pad_pct: 5,         // % H, margin above the header (top of plate)
+  header_gap_pct: 3.5,    // % H, after header, before number (may be negative)
+  number_gap_pct: 3.67,   // % H, after number, before QR
   footer_gap_pct: 2.08,   // % H, after QR, before footer lines
   blurb_gap_pct: 2.5,     // % H, between footer lines
   footer_pad_pct: 0,      // % W, footer offset from the QR's left edge
@@ -53,6 +53,12 @@ const DEFAULTS = {
 
   // QR-only layout
   show_caption: true,
+
+  // FAA registration — optional text drawn perpendicular on a side edge,
+  // matched from an imported CSV by the trailing number of the Nickname.
+  show_faa: false,
+  faa_side: "left",      // "right" | "left"
+  faa_size_pct: 8,       // % H (font size); auto-shrinks to fit the edge
 };
 
 const MAX_LABELS = 500;
@@ -206,6 +212,60 @@ const L = {
 };
 
 // ================================================================
+// FAA registration lookup (imported from CSV)
+// ================================================================
+
+// Map of label number (as string) -> FAA registration string.
+let faaRegistrations = {};
+
+/** Minimal RFC-4180-ish CSV parser (handles quoted fields with commas). */
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\n") {
+      row.push(field); rows.push(row); row = []; field = "";
+    } else if (c !== "\r") {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+/** Build number -> registration map from CSV text. Matches on the trailing
+ *  number of the "Nickname" column (e.g. ACME-LOC-602 -> 602). */
+function buildFaaMap(text) {
+  const rows = parseCsv(text).filter((r) => r.some((c) => c.trim() !== ""));
+  if (rows.length < 2) throw new Error("CSV has no data rows.");
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const nickIdx = header.findIndex((h) => h.includes("nickname"));
+  const regIdx = header.findIndex((h) => h.includes("registration"));
+  if (nickIdx < 0 || regIdx < 0) {
+    throw new Error('CSV needs a "Nickname" and a "Registration" column.');
+  }
+  const map = {};
+  let matched = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const nick = (rows[i][nickIdx] || "").trim();
+    const reg = (rows[i][regIdx] || "").trim();
+    const m = nick.match(/(\d+)\s*$/); // trailing number of the nickname
+    if (m && reg) { map[String(parseInt(m[1], 10))] = reg; matched++; }
+  }
+  return { map, matched };
+}
+
+// ================================================================
 // Label rendering
 // ================================================================
 
@@ -227,6 +287,7 @@ function labelItems(cfg) {
       url: cfg.url_template
         .replaceAll("{prefix}", prefixLower)
         .replaceAll("{i}", numText),
+      registration: faaRegistrations[String(i)] || "",
     });
   }
   return items;
@@ -262,9 +323,41 @@ function renderLabel(cfg, item) {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, w, h);
   layout.render(ctx, cfg, item, L);
+  drawFaaEdge(ctx, cfg, item);
   ctx.restore();
 
   return canvas;
+}
+
+/** Draw the FAA registration perpendicular (rotated 90°) along a side edge.
+ *  Auto-shrinks the font if the text is longer than the edge. */
+function drawFaaEdge(ctx, cfg, item) {
+  if (!cfg.show_faa || !item.registration) return;
+  const { w, h } = L.plateSize(cfg);
+  const edgeMargin = L.pctW(cfg, 1.5);
+  const available = h - 2 * edgeMargin; // length along the vertical edge
+
+  let px = L.pctH(cfg, cfg.faa_size_pct);
+  ctx.save();
+  ctx.font = `${px}px "${cfg.font_family}"`;
+  const textW = ctx.measureText(item.registration).width;
+  if (textW > available) {
+    px *= available / textW;
+    ctx.font = `${px}px "${cfg.font_family}"`;
+  }
+
+  ctx.fillStyle = "#000";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (cfg.faa_side === "left") {
+    ctx.translate(edgeMargin + px / 2, h / 2);
+    ctx.rotate(Math.PI / 2); // reads top-to-bottom
+  } else {
+    ctx.translate(w - edgeMargin - px / 2, h / 2);
+    ctx.rotate(-Math.PI / 2); // reads bottom-to-top
+  }
+  ctx.fillText(item.registration, 0, 0);
+  ctx.restore();
 }
 
 // ================================================================
@@ -409,6 +502,8 @@ async function renderPreviews() {
     `${cfg.plate_width_in.toFixed(2)}×${cfg.plate_height_in.toFixed(2)} in ` +
     `(${widthMm.toFixed(1)}×${heightMm.toFixed(1)} mm) @ ${cfg.dpi} DPI`;
 
+  updateFaaStatus(cfg, items);
+
   try {
     await Promise.all(
       FONTS.map((f) => document.fonts.load(`16px "${f.family}"`))
@@ -437,6 +532,22 @@ async function renderPreviews() {
   } catch (err) {
     showError(err);
   }
+}
+
+function updateFaaStatus(cfg, items) {
+  const el = document.getElementById("faa-csv-status");
+  if (!el) return;
+  const loaded = Object.keys(faaRegistrations).length;
+  if (!loaded) {
+    el.textContent =
+      "No CSV loaded — matches the trailing number of the Nickname column.";
+    return;
+  }
+  const matched = items.filter((it) => it.registration).length;
+  const note = cfg.show_faa ? "" : " (enable the checkbox above to show them)";
+  el.textContent =
+    `${loaded} registration(s) loaded · ` +
+    `${matched}/${items.length} labels matched${note}.`;
 }
 
 function showError(err) {
@@ -535,7 +646,15 @@ function init() {
   }
   presetSel.addEventListener("change", () => {
     if (!presetSel.value) return;
-    writeConfig({ ...DEFAULTS, ...PRESETS[presetSel.value].overrides });
+    // FAA settings are orthogonal to size/layout presets — carry them over.
+    const cur = readConfig();
+    writeConfig({
+      ...DEFAULTS,
+      ...PRESETS[presetSel.value].overrides,
+      show_faa: cur.show_faa,
+      faa_side: cur.faa_side,
+      faa_size_pct: cur.faa_size_pct,
+    });
     scheduleRender();
   });
   // Any manual edit means the form no longer reflects the preset verbatim
@@ -560,6 +679,34 @@ function init() {
     opt.textContent = f.label;
     fontSel.append(opt);
   }
+
+  // FAA registration CSV import
+  try {
+    const saved = JSON.parse(localStorage.getItem("faa-registrations"));
+    if (saved && typeof saved === "object") faaRegistrations = saved;
+  } catch {
+    /* ignore */
+  }
+  const csvInput = document.getElementById("faa-csv");
+  csvInput.addEventListener("change", async () => {
+    const file = csvInput.files[0];
+    if (!file) return;
+    try {
+      const { map, matched } = buildFaaMap(await file.text());
+      if (matched === 0) throw new Error("No usable rows found in CSV.");
+      faaRegistrations = map;
+      localStorage.setItem("faa-registrations", JSON.stringify(map));
+      scheduleRender();
+    } catch (err) {
+      showError(err);
+    }
+  });
+  document.getElementById("faa-clear").addEventListener("click", () => {
+    faaRegistrations = {};
+    localStorage.removeItem("faa-registrations");
+    csvInput.value = "";
+    scheduleRender();
+  });
 
   writeConfig(loadInitialConfig());
   form.addEventListener("input", scheduleRender);
